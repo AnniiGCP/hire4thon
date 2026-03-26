@@ -1,0 +1,95 @@
+.shared-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 2px solid #d1d5db;
+  color: #1f2937;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  box-sizing: border-box;
+}
+
+.shared-sidebar-brand {
+  margin-bottom: 28px;
+}
+
+.shared-sidebar-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.shared-sidebar-subtitle {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.shared-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0 -14px;
+}
+
+.shared-sidebar-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #1f2937;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 0;
+  padding: 11px 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shared-sidebar-item-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  stroke: #1f2937;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shared-sidebar-item-label {
+  line-height: 1.2;
+}
+
+.shared-sidebar-nav .shared-sidebar-item + .shared-sidebar-item {
+  border-top: 1px solid #e5e7eb;
+}
+
+.shared-sidebar-item:hover {
+  background: #f3f4f6;
+}
+
+.shared-sidebar-item-active {
+  background: #e5e7eb;
+}
+
+.shared-sidebar-logout {
+  margin: auto -14px 0;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 980px) {
+  .shared-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+  }
+}
