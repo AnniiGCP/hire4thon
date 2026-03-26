@@ -10,7 +10,7 @@ const baseLeaderboard = [
   { id: 5, name: 'Vikram', points: 373, initial: 'V', avatarClass: 'rp-avatar-vikram' },
 ]
 
-function ResultsPage({ onNavigate = () => {}, latestAttempt = null, attempts = [] }) {
+function ResultsPage({ onNavigate = () => {}, latestAttempt = null, attempts = [], userQuizPoints = 0 }) {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [showAllRows, setShowAllRows] = useState(false)
   const activeTopic = latestAttempt ? latestAttempt.topic : 'No Quiz Attempt Yet'
@@ -18,19 +18,20 @@ function ResultsPage({ onNavigate = () => {}, latestAttempt = null, attempts = [
   const totalQuizzes = attempts.length
   const accuracy = latestAttempt ? latestAttempt.accuracy : 0
   const bestStreak = Math.max(1, Math.min(7, totalQuizzes))
-  const yourLeaderboardPoints = attempts.reduce((sum, attempt) => {
-    const scoreBoost = Number.isFinite(attempt.scoreNumber) ? attempt.scoreNumber * 100 : 0
-    return sum + scoreBoost + (attempt.accuracy || 0)
-  }, 0)
-  const leaderboard = [...baseLeaderboard, {
+  const yourLeaderboardPoints = userQuizPoints
+  const yourEntry = {
     id: 'you',
     name: 'You',
     points: yourLeaderboardPoints,
     initial: 'Y',
     avatarClass: 'rp-avatar-you',
-  }]
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 5)
+  }
+  const rankedLeaderboard = [...baseLeaderboard, yourEntry].sort((a, b) => b.points - a.points)
+  const yourRank = rankedLeaderboard.findIndex((entry) => entry.id === 'you') + 1
+  let leaderboard = rankedLeaderboard.slice(0, 5)
+  if (!leaderboard.some((entry) => entry.id === 'you')) {
+    leaderboard = [...leaderboard.slice(0, 4), yourEntry]
+  }
   const tableRows = attempts.map((attempt, index) => ({
     id: attempt.id || index + 1,
     date: attempt.date,
@@ -40,6 +41,12 @@ function ResultsPage({ onNavigate = () => {}, latestAttempt = null, attempts = [
   }))
   const hasMoreThanThree = tableRows.length > 3
   const visibleRows = showAllRows ? tableRows : tableRows.slice(0, 3)
+  const sectionScores = latestAttempt?.sectionScores || {}
+  const sectionScoreRows = [
+    { key: 'Beginner', value: sectionScores.Beginner || 0 },
+    { key: 'Intermediate', value: sectionScores.Intermediate || 0 },
+    { key: 'Advanced', value: sectionScores.Advanced || 0 },
+  ]
 
   const handleCloseModal = () => {
     setShowReviewModal(false)
@@ -75,6 +82,18 @@ function ResultsPage({ onNavigate = () => {}, latestAttempt = null, attempts = [
               <div className="rp-metric rp-metric-orange">🔥 <strong>{bestStreak} day{bestStreak > 1 ? 's' : ''}</strong> Best Streak</div>
               <div className="rp-metric rp-metric-gray">📅 <strong>{totalQuizzes}</strong> Total Quizzes</div>
 
+              <div className="rp-section-scores">
+                <p className="rp-section-scores-title">Section-wise Score</p>
+                <div className="rp-section-scores-grid">
+                  {sectionScoreRows.map((row) => (
+                    <div key={row.key} className="rp-section-score-card">
+                      <p className="rp-section-score-label">{row.key}</p>
+                      <p className="rp-section-score-value">{row.value} pts</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <button type="button" className="rp-review-btn" onClick={() => setShowReviewModal(true)}>
                 Review Answers
               </button>
@@ -91,6 +110,7 @@ function ResultsPage({ onNavigate = () => {}, latestAttempt = null, attempts = [
                   </div>
                 ))}
               </div>
+              <p className="rp-link">Your Rank: #{yourRank || '-'} · {yourLeaderboardPoints} pts</p>
               <a href="#" className="rp-link">
                 View Full Leaderboard →
               </a>

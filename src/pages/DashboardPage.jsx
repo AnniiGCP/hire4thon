@@ -16,14 +16,14 @@ const leaderboardOthers = [
 const personalRank = {
   rank: 18,
   name: 'You (Sumant Mahesh Adky)',
-  points: 640,
 }
 
-function DashboardPage({ onNavigate = () => {} }) {
+function DashboardPage({ onNavigate = () => {}, userQuizPoints = 0, onAnalyze = async () => {} }) {
   const [topic, setTopic] = useState('')
   const [file, setFile] = useState(null)
   const [showProgress, setShowProgress] = useState(false)
   const [analysisProgress, setAnalysisProgress] = useState(0)
+  const [analysisError, setAnalysisError] = useState('')
 
   const handleFileChange = (event) => {
     const selected = event.target.files && event.target.files[0] ? event.target.files[0] : null
@@ -35,28 +35,39 @@ function DashboardPage({ onNavigate = () => {} }) {
       return undefined
     }
 
-    if (analysisProgress >= 100) {
-      const navigateTimer = setTimeout(() => {
-        onNavigate('notes')
-      }, 220)
-
-      return () => clearTimeout(navigateTimer)
+    if (analysisProgress >= 92) {
+      return undefined
     }
 
     const timer = setTimeout(() => {
-      setAnalysisProgress((prev) => Math.min(100, prev + 5))
+      setAnalysisProgress((prev) => Math.min(92, prev + 4))
     }, 90)
 
     return () => clearTimeout(timer)
-  }, [showProgress, analysisProgress, onNavigate])
+  }, [showProgress, analysisProgress])
 
-  const handleAnalyzeClick = () => {
+  const handleAnalyzeClick = async () => {
     if (showProgress) {
       return
     }
 
+    if (!topic.trim() && !file) {
+      setAnalysisError('Enter a topic or upload a file before analyzing.')
+      return
+    }
+
+    setAnalysisError('')
     setShowProgress(true)
     setAnalysisProgress(0)
+
+    try {
+      await onAnalyze({ topic, file })
+      setAnalysisProgress(100)
+    } catch (error) {
+      setShowProgress(false)
+      setAnalysisProgress(0)
+      setAnalysisError(error?.message || 'Unable to analyze your content right now. Please try again.')
+    }
   }
 
   return (
@@ -130,11 +141,12 @@ function DashboardPage({ onNavigate = () => {} }) {
               onClick={handleAnalyzeClick}
               disabled={showProgress}
             >
-              {showProgress ? `Analyzing... ${analysisProgress}%` : 'Analyze'}
+              {showProgress ? `Analyzing with LLM... ${analysisProgress}%` : 'Analyze'}
             </button>
             <p className="dashboard-generate-subtitle">
-              Click Analyze to start processing your topic and files.
+              Analyze sends your topic/module to the LLM and prepares notes, insights, and quiz levels.
             </p>
+            {analysisError ? <p className="dashboard-error-text">{analysisError}</p> : null}
           </section>
 
           <section className="dashboard-bottom-grid">
@@ -184,7 +196,7 @@ function DashboardPage({ onNavigate = () => {} }) {
                   <p className="dashboard-personal-rank-label">Your Rank</p>
                   <p className="dashboard-personal-rank-name">{personalRank.name}</p>
                 </div>
-                <span className="dashboard-personal-rank-points">{personalRank.points} pts</span>
+                <span className="dashboard-personal-rank-points">{userQuizPoints} pts</span>
               </div>
 
               <div className="dashboard-link-wrap">

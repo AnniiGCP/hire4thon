@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import SharedSidebar from '../components/SharedSidebar'
 import './NotesPage.css'
 
@@ -33,8 +33,61 @@ const quizRows = [
   },
 ]
 
-function NotesPage({ onNavigate, onGenerateQuiz = () => {}, quizUnlocked = false }) {
+const defaultGeneratedNotes = {
+  title: 'Photosynthesis Explained',
+  overview:
+    'Photosynthesis is the process by which plants use sunlight to synthesize nutrients from carbon dioxide and water. This process is essential for producing oxygen and energy in the form of glucose.',
+  keyPoints: [
+    'Light Reactions: Occur in thylakoid membranes where light energy is converted into ATP and NADPH.',
+    'Calvin Cycle: Takes place in the stroma, where CO2 is fixed into glucose.',
+  ],
+  additionalNotes: [
+    'Chlorophyll in the chloroplasts absorbs sunlight.',
+    'Oxygen is released as a byproduct.',
+    'Photosynthesis is crucial for life on Earth.',
+  ],
+  insights: {
+    strengths: ['Strong conceptual extraction from source content'],
+    weaknesses: ['Requires repeated practice on advanced-level questions'],
+    recommendations: ['Revise notes once, then attempt all difficulty levels'],
+  },
+}
+
+function NotesPage({ onNavigate, onGenerateQuiz = () => {}, quizUnlocked = false, analysisData = null }) {
   const [showPreview, setShowPreview] = useState(false)
+  const hasGeneratedOutput = Boolean(analysisData)
+
+  const generatedNotes = useMemo(() => {
+    if (!analysisData?.notes) {
+      return defaultGeneratedNotes
+    }
+
+    return {
+      title: analysisData.notes.title || defaultGeneratedNotes.title,
+      overview: analysisData.notes.overview || defaultGeneratedNotes.overview,
+      keyPoints: Array.isArray(analysisData.notes.keyPoints) && analysisData.notes.keyPoints.length > 0
+        ? analysisData.notes.keyPoints
+        : defaultGeneratedNotes.keyPoints,
+      additionalNotes:
+        Array.isArray(analysisData.notes.additionalNotes) && analysisData.notes.additionalNotes.length > 0
+          ? analysisData.notes.additionalNotes
+          : defaultGeneratedNotes.additionalNotes,
+      insights: {
+        strengths: Array.isArray(analysisData.notes.insights?.strengths)
+          ? analysisData.notes.insights.strengths
+          : defaultGeneratedNotes.insights.strengths,
+        weaknesses: Array.isArray(analysisData.notes.insights?.weaknesses)
+          ? analysisData.notes.insights.weaknesses
+          : defaultGeneratedNotes.insights.weaknesses,
+        recommendations: Array.isArray(analysisData.notes.insights?.recommendations)
+          ? analysisData.notes.insights.recommendations
+          : defaultGeneratedNotes.insights.recommendations,
+      },
+    }
+  }, [analysisData])
+
+  const generatedTopicTitle = analysisData?.topic || generatedNotes.title
+  const attachedFileName = analysisData?.sourceFileName || 'No file uploaded'
 
   return (
     <div className="notes-page">
@@ -48,41 +101,68 @@ function NotesPage({ onNavigate, onGenerateQuiz = () => {}, quizUnlocked = false
             <h2 className="notes-card-header">📗 Study Notes ✏️</h2>
             <hr className="notes-divider" />
 
-            <h3 className="notes-section-title">Photosynthesis Explained</h3>
+            <h3 className="notes-section-title">{generatedTopicTitle}</h3>
 
             <hr className="notes-divider" />
             <p className="notes-label">Overview:</p>
             <p className="notes-paragraph">
-              Photosynthesis is the process by which plants use sunlight to synthesize
-              nutrients from carbon dioxide and water. This process is essential for producing
-              oxygen and energy in the form of glucose.
+              {generatedNotes.overview}
             </p>
 
             <hr className="notes-divider" />
-            <p className="notes-label">Key Stages of Photosynthesis:</p>
+            <p className="notes-label">Key Learning Points:</p>
             <ul className="notes-list">
-              <li>
-                <span className="notes-inline-strong">1. Light Reactions:</span> Occur in thylakoid membranes where light energy
-                is converted into chemical energy (ATP and NADPH).
-              </li>
-              <li>
-                <span className="notes-inline-strong">2. Calvin Cycle:</span> Takes place in the stroma, where CO2 is fixed into glucose.
-              </li>
+              {generatedNotes.keyPoints.map((point, index) => (
+                <li key={`${point}-${index}`}>
+                  <span className="notes-inline-strong">{index + 1}.</span> {point}
+                </li>
+              ))}
             </ul>
 
             <hr className="notes-divider" />
             <p className="notes-label">Additional Notes:</p>
             <ul className="notes-list">
-              <li>Chlorophyll in the chloroplasts absorbs sunlight.</li>
-              <li>Oxygen is released as a byproduct.</li>
-              <li>Photosynthesis is crucial for life on Earth.</li>
+              {generatedNotes.additionalNotes.map((item, index) => (
+                <li key={`${item}-${index}`}>{item}</li>
+              ))}
             </ul>
 
             <hr className="notes-divider" />
+            <p className="notes-label">AI Insights:</p>
+            <div className="notes-insights-grid">
+              <div className="notes-insight-card notes-insight-good">
+                <p className="notes-insight-title">Strengths</p>
+                <ul className="notes-insight-list">
+                  {generatedNotes.insights.strengths.map((item, index) => (
+                    <li key={`strength-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="notes-insight-card notes-insight-warn">
+                <p className="notes-insight-title">Weaknesses</p>
+                <ul className="notes-insight-list">
+                  {generatedNotes.insights.weaknesses.map((item, index) => (
+                    <li key={`weakness-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="notes-insight-card notes-insight-info">
+                <p className="notes-insight-title">Recommendations</p>
+                <ul className="notes-insight-list">
+                  {generatedNotes.insights.recommendations.map((item, index) => (
+                    <li key={`recommendation-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <hr className="notes-divider" />
             <div className="notes-file-row">
-              <span className="notes-file-label">Attached File:</span>
+              <span className="notes-file-label">Analyzed Module:</span>
               <a href="#" className="notes-file-link">
-                photosynthesis_diagram.jpg
+                {attachedFileName}
               </a>
             </div>
 
@@ -140,13 +220,14 @@ function NotesPage({ onNavigate, onGenerateQuiz = () => {}, quizUnlocked = false
             type="button"
             className="notes-generate-btn"
             onClick={onGenerateQuiz}
+            disabled={!hasGeneratedOutput}
           >
-            Generate Quiz
+            Open Generated Quiz
           </button>
           <p className="notes-generate-note">
-            {quizUnlocked
-              ? 'Quiz generated. You can now open the Quiz page.'
-              : 'Generate a quiz to unlock the Quiz page.'}
+            {quizUnlocked && hasGeneratedOutput
+              ? 'LLM generated notes, insights, and quiz levels. You can now start the quiz.'
+              : 'Run Analyze from Study page to generate notes, insights, and the quiz.'}
           </p>
         </section>
 

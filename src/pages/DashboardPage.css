@@ -350,6 +350,14 @@
   font-size: 15px;
 }
 
+.dashboard-error-text {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
 .dashboard-bottom-grid {
   margin-top: 24px;
   display: grid;

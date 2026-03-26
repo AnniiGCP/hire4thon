@@ -56,7 +56,6 @@ const rankRows = [
 const personalRank = {
   rank: 18,
   name: 'Sumant Mahesh Adky',
-  score: 1760,
 }
 
 const driveDataRows = [
@@ -88,7 +87,7 @@ const driveDataRows = [
 const driveDefaultVisibleCount = 3
 const leaderboardDefaultVisibleCount = 3
 
-function HomePage({ onNavigate = () => {} }) {
+function HomePage({ onNavigate = () => {}, userQuizPoints = 0 }) {
   const [leaderboardFilter, setLeaderboardFilter] = useState('Total')
   const [activeSlide, setActiveSlide] = useState(0)
   const [submissionStreak, setSubmissionStreak] = useState(DEFAULT_SUBMISSION_STREAK)
@@ -282,7 +281,7 @@ function HomePage({ onNavigate = () => {} }) {
                     <p className="home-personal-rank-label">Your Rank</p>
                     <p className="home-personal-rank-name">{personalRank.name}</p>
                   </div>
-                  <span className="home-personal-rank-score">{personalRank.score} pts</span>
+                  <span className="home-personal-rank-score">{userQuizPoints} pts</span>
                 </div>
 
                 <div className="home-show-more">

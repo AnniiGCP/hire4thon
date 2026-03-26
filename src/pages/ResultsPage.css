@@ -204,6 +204,50 @@
   cursor: pointer;
 }
 
+.rp-section-scores {
+  margin: 10px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.rp-section-scores-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.rp-section-scores-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rp-section-score-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px;
+  text-align: center;
+}
+
+.rp-section-score-label {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.rp-section-score-value {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: #166534;
+  font-weight: 800;
+}
+
 .rp-tags {
   margin-top: 12px;
   display: flex;
@@ -478,6 +522,10 @@
   }
 
   .rp-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-section-scores-grid {
     grid-template-columns: 1fr;
   }
 

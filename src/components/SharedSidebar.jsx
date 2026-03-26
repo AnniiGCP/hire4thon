@@ -82,7 +82,6 @@ const navItems = [
   { id: 'home', label: 'Dashboard', icon: IconDashboard },
   { id: 'dashboard', label: 'Study', icon: IconStudy },
   { id: 'notes', label: 'Analyze', icon: IconAnalyze },
-  { id: 'quiz', label: 'Quiz', icon: IconQuiz },
   { id: 'profile', label: 'Profile', icon: IconProfile },
 ]
 
@@ -90,8 +89,11 @@ function SharedSidebar({ active = '', onNavigate = () => {} }) {
   return (
     <aside className="shared-sidebar">
       <div className="shared-sidebar-brand">
-        <p className="shared-sidebar-title">🤖 QuizGen AI</p>
-        <p className="shared-sidebar-subtitle">Adaptive Quiz Generator for Courses</p>
+        <div className="shared-sidebar-brand-mark" aria-hidden="true">Q</div>
+        <div className="shared-sidebar-brand-copy">
+          <p className="shared-sidebar-title">QuizGen AI</p>
+          <p className="shared-sidebar-subtitle">Adaptive Quiz Generator for Courses</p>
+        </div>
       </div>
 
       <nav className="shared-sidebar-nav">

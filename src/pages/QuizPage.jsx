@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import SharedSidebar from '../components/SharedSidebar'
 import './QuizPage.css'
 
-const questions = [
+const fallbackQuestions = [
   {
     id: 1,
     difficulty: 'Intermediate',
@@ -65,20 +65,120 @@ const questions = [
   },
 ]
 
-function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
+const difficultyOrder = ['Beginner', 'Intermediate', 'Advanced']
+
+const sectionLeaderboardBase = {
+  Beginner: [
+    { id: 1, name: 'Priya', points: 5 },
+    { id: 2, name: 'Rahul', points: 4 },
+    { id: 3, name: 'Nat', points: 4 },
+    { id: 4, name: 'Ananya', points: 3 },
+    { id: 5, name: 'Vikram', points: 3 },
+  ],
+  Intermediate: [
+    { id: 1, name: 'Priya', points: 6 },
+    { id: 2, name: 'Rahul', points: 5 },
+    { id: 3, name: 'Nat', points: 5 },
+    { id: 4, name: 'Ananya', points: 4 },
+    { id: 5, name: 'Vikram', points: 4 },
+  ],
+  Advanced: [
+    { id: 1, name: 'Priya', points: 7 },
+    { id: 2, name: 'Rahul', points: 6 },
+    { id: 3, name: 'Nat', points: 6 },
+    { id: 4, name: 'Ananya', points: 5 },
+    { id: 5, name: 'Vikram', points: 5 },
+  ],
+}
+
+function normalizeDifficulty(rawDifficulty) {
+  const level = String(rawDifficulty || 'Intermediate').toLowerCase()
+  if (level === 'beginner') return 'Beginner'
+  if (level === 'advanced') return 'Advanced'
+  return 'Intermediate'
+}
+
+function buildSectionLeaderboard(sectionName, userPoints) {
+  const baseRows = sectionLeaderboardBase[sectionName] || sectionLeaderboardBase.Intermediate
+  const you = { id: 'you', name: 'You', points: userPoints }
+  const ranked = [...baseRows, you].sort((a, b) => b.points - a.points)
+  const yourRank = ranked.findIndex((row) => row.id === 'you') + 1
+
+  let visible = ranked.slice(0, 5)
+  if (!visible.some((row) => row.id === 'you')) {
+    visible = [...visible.slice(0, 4), you]
+  }
+
+  return { rows: visible, yourRank }
+}
+
+function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {}, analysisData = null }) {
   const totalTimeSeconds = 10 * 60
-  const quizTopic = 'General Science'
-  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const pointsPerQuestion = 1
+  const sourceQuestions = analysisData?.quiz?.allQuestions?.length
+    ? analysisData.quiz.allQuestions
+    : fallbackQuestions
+  const quizTopic = analysisData?.topic || 'General Science'
+  const normalizedQuestions = useMemo(
+    () => sourceQuestions.map((item) => ({ ...item, difficulty: normalizeDifficulty(item.difficulty) })),
+    [sourceQuestions],
+  )
+
+  const questionsByDifficulty = useMemo(
+    () =>
+      normalizedQuestions.reduce(
+        (acc, item) => {
+          acc[item.difficulty].push(item)
+          return acc
+        },
+        { Beginner: [], Intermediate: [], Advanced: [] },
+      ),
+    [normalizedQuestions],
+  )
+
+  const availableSections = useMemo(
+    () => difficultyOrder.filter((level) => questionsByDifficulty[level].length > 0),
+    [questionsByDifficulty],
+  )
+
+  const difficultyCounts = {
+    beginner: questionsByDifficulty.Beginner.length,
+    intermediate: questionsByDifficulty.Intermediate.length,
+    advanced: questionsByDifficulty.Advanced.length,
+  }
+
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedOption, setSelectedOption] = useState(null)
   const [hasStarted, setHasStarted] = useState(false)
   const [timeLeft, setTimeLeft] = useState(totalTimeSeconds)
   const [answersByQuestionId, setAnswersByQuestionId] = useState({})
+  const [showSectionLeaderboard, setShowSectionLeaderboard] = useState(false)
+  const [completedSection, setCompletedSection] = useState('')
 
-  const question = questions[currentQuestion]
-  const isLastQuestion = currentQuestion === questions.length - 1
+  const currentSectionName = availableSections[currentSectionIndex] || 'Intermediate'
+  const currentSectionQuestions = questionsByDifficulty[currentSectionName] || []
+  const question = currentSectionQuestions[currentQuestionIndex]
+  const isLastQuestionInSection = currentQuestionIndex === currentSectionQuestions.length - 1
+  const isLastSection = currentSectionIndex === availableSections.length - 1
+
+  const questionsBeforeCurrentSection = availableSections
+    .slice(0, currentSectionIndex)
+    .reduce((sum, level) => sum + questionsByDifficulty[level].length, 0)
+  const overallQuestionNumber = questionsBeforeCurrentSection + currentQuestionIndex + 1
+
+  const getSectionScore = (sectionName) => {
+    const sectionQuestions = questionsByDifficulty[sectionName] || []
+    return sectionQuestions.reduce(
+      (sum, item) => sum + (answersByQuestionId[item.id] === item.correctOption ? pointsPerQuestion : 0),
+      0,
+    )
+  }
+
+  const sectionLeaderboard = buildSectionLeaderboard(completedSection || currentSectionName, getSectionScore(completedSection || currentSectionName))
 
   useEffect(() => {
-    if (!hasStarted) {
+    if (!hasStarted || showSectionLeaderboard) {
       return undefined
     }
 
@@ -93,20 +193,31 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [hasStarted])
+  }, [hasStarted, showSectionLeaderboard])
 
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
   const timerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 
   const handleNext = () => {
-    setCurrentQuestion((prev) => prev + 1)
-    const nextQuestion = questions[currentQuestion + 1]
-    setSelectedOption(nextQuestion ? answersByQuestionId[nextQuestion.id] || null : null)
+    if (!isLastQuestionInSection) {
+      const nextQuestion = currentSectionQuestions[currentQuestionIndex + 1]
+      setCurrentQuestionIndex((prev) => prev + 1)
+      setSelectedOption(nextQuestion ? answersByQuestionId[nextQuestion.id] || null : null)
+      return
+    }
+
+    if (!isLastSection) {
+      setCompletedSection(currentSectionName)
+      setShowSectionLeaderboard(true)
+      return
+    }
+
+    handleSubmit()
   }
 
   const handleSubmit = () => {
-    const reviewAnswers = questions.map((item, idx) => {
+    const reviewAnswers = normalizedQuestions.map((item, idx) => {
       const selected = answersByQuestionId[item.id] || null
       const selectedOptionDetails = item.options.find((opt) => opt.id === selected)
       const correctOptionDetails = item.options.find((opt) => opt.id === item.correctOption)
@@ -122,19 +233,24 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
     })
 
     const correctCount = reviewAnswers.filter((entry) => entry.status === 'Correct').length
-    const totalQuestions = questions.length
+    const totalQuestions = normalizedQuestions.length
     const accuracy = Math.round((correctCount / totalQuestions) * 100)
     const timeTakenSeconds = totalTimeSeconds - timeLeft
+    const sectionScores = availableSections.reduce((acc, level) => {
+      acc[level] = getSectionScore(level)
+      return acc
+    }, {})
 
     const attempt = {
       id: Date.now(),
       topic: quizTopic,
-      difficulty: 'Intermediate',
+      difficulty: 'Mixed',
       score: `${correctCount} / ${totalQuestions}`,
       scoreNumber: correctCount,
       totalQuestions,
       accuracy,
       timeTakenSeconds,
+      sectionScores,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       reviewAnswers,
     }
@@ -143,11 +259,26 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
   }
 
   const handleStartQuiz = () => {
-    setCurrentQuestion(0)
+    setCurrentSectionIndex(0)
+    setCurrentQuestionIndex(0)
     setSelectedOption(null)
     setAnswersByQuestionId({})
     setTimeLeft(totalTimeSeconds)
+    setShowSectionLeaderboard(false)
+    setCompletedSection('')
     setHasStarted(true)
+  }
+
+  const handleStartNextSection = () => {
+    const nextSectionIndex = currentSectionIndex + 1
+    const nextSectionName = availableSections[nextSectionIndex]
+    const firstQuestionInNextSection = nextSectionName ? questionsByDifficulty[nextSectionName][0] : null
+
+    setCurrentSectionIndex(nextSectionIndex)
+    setCurrentQuestionIndex(0)
+    setSelectedOption(firstQuestionInNextSection ? answersByQuestionId[firstQuestionInNextSection.id] || null : null)
+    setShowSectionLeaderboard(false)
+    setCompletedSection('')
   }
 
   return (
@@ -167,15 +298,29 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
               </article>
               <article className="quiz-intro-item">
                 <p className="quiz-intro-label">Difficulty</p>
-                <p className="quiz-intro-value">Intermediate</p>
+                <p className="quiz-intro-value">Beginner + Intermediate + Advanced</p>
               </article>
               <article className="quiz-intro-item">
                 <p className="quiz-intro-label">Questions</p>
-                <p className="quiz-intro-value">{questions.length}</p>
+                <p className="quiz-intro-value">{sourceQuestions.length}</p>
+              </article>
+              <article className="quiz-intro-item">
+                <p className="quiz-intro-label">Points / Question</p>
+                <p className="quiz-intro-value">{pointsPerQuestion} pts</p>
               </article>
               <article className="quiz-intro-item">
                 <p className="quiz-intro-label">Time Limit</p>
                 <p className="quiz-intro-value">10 Minutes</p>
+              </article>
+              <article className="quiz-intro-item">
+                <p className="quiz-intro-label">Total Points</p>
+                <p className="quiz-intro-value">{sourceQuestions.length * pointsPerQuestion} pts</p>
+              </article>
+              <article className="quiz-intro-item">
+                <p className="quiz-intro-label">Difficulty Mix</p>
+                <p className="quiz-intro-value">
+                  B:{difficultyCounts.beginner} · I:{difficultyCounts.intermediate} · A:{difficultyCounts.advanced}
+                </p>
               </article>
             </div>
 
@@ -201,6 +346,39 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
             </div>
           </section>
         ) : (
+        showSectionLeaderboard ? (
+          <section className="quiz-shell quiz-section-shell">
+            <div className="quiz-top">
+              <div>
+                <h2 className="quiz-title">{completedSection} Section Complete</h2>
+                <p className="quiz-subtitle">Top 5 and your current rank for {completedSection}</p>
+              </div>
+              <div className="quiz-timer">🕐 {timerText}</div>
+            </div>
+
+            <article className="quiz-section-board">
+              <p className="quiz-section-points">Your {completedSection} Points: {getSectionScore(completedSection)} pts</p>
+
+              <div className="quiz-section-leaderboard-list">
+                {sectionLeaderboard.rows.map((entry) => (
+                  <div key={entry.id} className="quiz-section-row">
+                    <span className="quiz-section-rank">#{entry.id === 'you' ? sectionLeaderboard.yourRank : entry.id}</span>
+                    <span className="quiz-section-name">{entry.name}</span>
+                    <span className="quiz-section-score">{entry.points} pts</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="quiz-section-rank-note">Your Rank: #{sectionLeaderboard.yourRank}</p>
+            </article>
+
+            <div className="quiz-actions">
+              <button type="button" className="quiz-next-btn" onClick={handleStartNextSection}>
+                Next Section →
+              </button>
+            </div>
+          </section>
+        ) : (
         <section className="quiz-shell">
           <div className="quiz-top">
             <div>
@@ -212,8 +390,11 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
 
           <article className="quiz-question-card">
             <div className="quiz-question-top">
-              <span className="quiz-chip-left">🔍 Question {currentQuestion + 1} of {questions.length}</span>
-              <span className="quiz-chip-right">● {question.difficulty}</span>
+              <div className="quiz-chip-group">
+                <span className="quiz-chip-left">🔍 Question {overallQuestionNumber} of {normalizedQuestions.length}</span>
+                <span className="quiz-chip-points">{pointsPerQuestion} pts</span>
+              </div>
+              <span className="quiz-chip-right">● {currentSectionName}</span>
             </div>
             <p className="quiz-question-text">{question.question}</p>
           </article>
@@ -243,9 +424,9 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
           </div>
 
           <div className="quiz-actions">
-            {!isLastQuestion ? (
+            {!isLastQuestionInSection || !isLastSection ? (
               <button type="button" className="quiz-next-btn" onClick={handleNext}>
-                Next →
+                {isLastQuestionInSection ? `Finish ${currentSectionName} →` : 'Next →'}
               </button>
             ) : (
               <button type="button" className="quiz-next-btn" onClick={handleSubmit}>
@@ -256,6 +437,7 @@ function QuizPage({ onNavigate = () => {}, onQuizComplete = () => {} }) {
 
           <p className="quiz-footer">✈ Multiple Choice · Single Answer · Auto-Grading · New Options Generated</p>
         </section>
+        )
         )}
       </main>
     </div>

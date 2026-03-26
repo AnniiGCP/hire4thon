@@ -13,6 +13,17 @@ function LoginPage({ onLogin = () => {} }) {
     event.preventDefault()
 
     if (mode === 'login') {
+      if (!email.trim() || !password.trim()) {
+        setMessage('Please enter your email and password.')
+        return
+      }
+
+      if (!email.includes('@')) {
+        setMessage('Please enter a valid email address.')
+        return
+      }
+
+      setMessage('')
       onLogin()
       return
     }
@@ -141,7 +152,7 @@ function LoginPage({ onLogin = () => {} }) {
           )}
 
           {mode === 'login' ? (
-            <button type="button" className="button-submit" onClick={onLogin}>
+            <button type="submit" className="button-submit">
               Login
             </button>
           ) : (

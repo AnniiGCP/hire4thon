@@ -6,11 +6,14 @@ import ProfilePage from './pages/ProfilePage'
 import NotesPage from './pages/NotesPage'
 import ResultsPage from './pages/ResultsPage'
 import QuizPage from './pages/QuizPage'
+import { analyzeStudyContent } from './services/llmLearningService'
 
 function App() {
   const [activePage, setActivePage] = useState('login')
   const [quizUnlocked, setQuizUnlocked] = useState(false)
   const [quizAttempts, setQuizAttempts] = useState([])
+  const [analysisData, setAnalysisData] = useState(null)
+  const totalQuizPoints = quizAttempts.reduce((sum, attempt) => sum + (attempt.scoreNumber || 0), 0)
 
   const handleNavigate = (nextPage) => {
     if (nextPage === 'quiz' && !quizUnlocked) {
@@ -24,12 +27,25 @@ function App() {
   const handleLogin = () => {
     setQuizUnlocked(false)
     setQuizAttempts([])
+    setAnalysisData(null)
     setActivePage('home')
   }
 
   const handleGenerateQuiz = () => {
+    if (!analysisData) {
+      return
+    }
+
     setQuizUnlocked(true)
     setActivePage('quiz')
+  }
+
+  const handleAnalyzeRequest = async ({ topic, file }) => {
+    const generated = await analyzeStudyContent({ topic, file })
+    setAnalysisData(generated)
+    setQuizUnlocked(true)
+    setActivePage('notes')
+    return generated
   }
 
   const handleQuizComplete = (attempt) => {
@@ -42,11 +58,17 @@ function App() {
   }
 
   if (activePage === 'home') {
-    return <HomePage onNavigate={handleNavigate} />
+    return <HomePage onNavigate={handleNavigate} userQuizPoints={totalQuizPoints} />
   }
 
   if (activePage === 'dashboard') {
-    return <DashboardPage onNavigate={handleNavigate} />
+    return (
+      <DashboardPage
+        onNavigate={handleNavigate}
+        userQuizPoints={totalQuizPoints}
+        onAnalyze={handleAnalyzeRequest}
+      />
+    )
   }
 
   if (activePage === 'notes') {
@@ -55,12 +77,19 @@ function App() {
         onNavigate={handleNavigate}
         onGenerateQuiz={handleGenerateQuiz}
         quizUnlocked={quizUnlocked}
+        analysisData={analysisData}
       />
     )
   }
 
   if (activePage === 'quiz') {
-    return <QuizPage onNavigate={handleNavigate} onQuizComplete={handleQuizComplete} />
+    return (
+      <QuizPage
+        onNavigate={handleNavigate}
+        onQuizComplete={handleQuizComplete}
+        analysisData={analysisData}
+      />
+    )
   }
 
   if (activePage === 'results') {
@@ -69,6 +98,7 @@ function App() {
         onNavigate={handleNavigate}
         latestAttempt={quizAttempts[0] || null}
         attempts={quizAttempts}
+        userQuizPoints={totalQuizPoints}
       />
     )
   }
